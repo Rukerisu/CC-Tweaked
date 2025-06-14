@@ -15,23 +15,23 @@ if not monitor then error("Monitor not found") end
 if not cell then error("BigReactors Energizer not found") end
 
 -- Nastavenie monitora pre malý displej
-monitor.setTextScale(2)  -- zmenší počet znakov ale zväčší písmo
+monitor.setTextScale(2)
 local w, h = monitor.getSize()
 
 -- Formátovanie čísel
 local function formatRF(value)
     if value >= 1e15 then
-        return string.format("%.4fQ RF", value / 1e15)
+        return string.format("%.2fQ RF", value / 1e15)
     elseif value >= 1e12 then
-        return string.format("%.3fT RF", value / 1e12)
+        return string.format("%.2fT RF", value / 1e12)
     elseif value >= 1e9 then
         return string.format("%.2fB RF", value / 1e9)
     elseif value >= 1e6 then
-        return string.format("%.1fM RF", value / 1e6)
+        return string.format("%.2fM RF", value / 1e6)
     elseif value >= 1e3 then
-        return string.format("%.0fk RF", value / 1e3)
+        return string.format("%.2fk RF", value / 1e3)
     else
-        return string.format("%d RF", value)
+        return string.format("%d RF", value)  -- < 1000 RF bez desatinnej časti
     end
 end
 
@@ -41,11 +41,12 @@ while true do
     local maxEnergy = cell.getEnergyCapacity()
 
     monitor.clear()
-    monitor.setCursorPos(1, math.floor(h / 2))
 
     local line = formatRF(energy) .. " / " .. formatRF(maxEnergy)
     local startX = math.floor((w - #line) / 2) + 1
-    monitor.setCursorPos(startX, math.floor(h / 2))
+    local centerY = math.floor(h / 2)
+
+    monitor.setCursorPos(startX, centerY)
     monitor.write(line)
 
     sleep(1)
