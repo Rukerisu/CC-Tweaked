@@ -32,7 +32,7 @@ end
 -- Hlavný cyklus
 while true do
     local energy = cell.getEnergyStored()
-    local maxEnergy = cell.getMaxEnergyStored()
+    local maxEnergy = cell.getEnergyCapacity()
 
     monitor.clear()
     monitor.setCursorPos(1, math.floor(h / 2))
