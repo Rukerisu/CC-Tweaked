@@ -1,5 +1,5 @@
 -- Setup peripherals
-local monitor = peripheral.wrap("top") -- adjust if needed
+local monitor = peripheral.find("monitor")
 local cell = peripheral.find("energized_cell") or peripheral.find("draconic_rf_storage") or peripheral.wrap("back")
 
 if not monitor or not cell then
