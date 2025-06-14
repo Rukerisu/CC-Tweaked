@@ -1,19 +1,19 @@
--- Nastavenie periférií
-local monitor = peripheral.wrap("top") -- uprav podľa potreby
-local cell = peripheral.find("draconic_rf_storage") or peripheral.find("energized_cell") or peripheral.wrap("back")
+-- Setup peripherals
+local monitor = peripheral.wrap("top") -- adjust if needed
+local cell = peripheral.find("energized_cell") or peripheral.find("draconic_rf_storage") or peripheral.wrap("back")
 
 if not monitor or not cell then
-    error("Skontroluj pripojenie monitora a energized cell!")
+    error("Check monitor and energy cell connections!")
 end
 
 monitor.setTextScale(1)
 monitor.setBackgroundColor(colors.black)
 monitor.clear()
 
--- Tlačidlo na prepínanie stavu
+-- Toggle button configuration
 local button = {x=2, y=10, w=24, h=3}
 
--- Pomocné funkcie
+-- Helper: Draw progress bar
 local function drawProgressBar(x, y, width, percent)
     local filled = math.floor(width * percent)
     monitor.setCursorPos(x, y)
@@ -23,8 +23,9 @@ local function drawProgressBar(x, y, width, percent)
     monitor.write(string.rep(" ", width - filled))
 end
 
+-- Helper: Draw toggle button
 local function drawToggleButton(active)
-    local label = active and "Vypnúť úložisko" or "Zapnúť úložisko"
+    local label = active and "Disable Storage" or "Enable Storage"
     local color = active and colors.red or colors.green
 
     monitor.setBackgroundColor(color)
@@ -38,6 +39,7 @@ local function drawToggleButton(active)
     monitor.write(label)
 end
 
+-- UI drawing
 local function drawUI()
     monitor.clear()
     monitor.setCursorPos(2, 2)
@@ -54,10 +56,10 @@ local function drawUI()
 
     monitor.setCursorPos(2, 4)
     monitor.setTextColor(colors.white)
-    monitor.write(string.format("Energie: %s RF / %s RF", energy, max))
+    monitor.write(string.format("Energy: %s RF / %s RF", energy, max))
 
     monitor.setCursorPos(2, 5)
-    monitor.write("Stav: " .. (active and "Aktívne" or "Neaktívne"))
+    monitor.write("Status: " .. (active and "Active" or "Inactive"))
 
     monitor.setCursorPos(2, 6)
     monitor.write("Input: " .. input .. " RF/t")
@@ -71,11 +73,12 @@ local function drawUI()
     drawToggleButton(active)
 end
 
+-- Check if monitor touch was inside button area
 local function withinButton(x, y)
     return x >= button.x and x < button.x + button.w and y >= button.y and y < button.y + button.h
 end
 
--- Hlavná slučka
+-- Main loop
 parallel.waitForAny(
     function()
         while true do
@@ -93,7 +96,7 @@ parallel.waitForAny(
                     cell.setActive(not current)
                     monitor.setCursorPos(2, 14)
                     monitor.setTextColor(colors.yellow)
-                    monitor.write(current and "Úložisko deaktivované. " or "Úložisko aktivované.   ")
+                    monitor.write(current and "Storage disabled.     " or "Storage enabled.      ")
                 end
             end
         end
