@@ -1,4 +1,3 @@
--- Vyhľadanie monitora a BigReactors Energizer
 local monitor, cell
 
 for _, name in ipairs(peripheral.getNames()) do
