@@ -1,20 +1,20 @@
--- Vyhľadanie všetkých pripojených zariadení
+-- Vyhľadanie monitora a BigReactors Energizer
 local monitor, cell
 
 for _, name in ipairs(peripheral.getNames()) do
     local pType = peripheral.getType(name)
     if pType == "monitor" then
         monitor = peripheral.wrap(name)
-    elseif pType and pType:find("energycell") then
+    elseif pType and pType:lower():find("bigreactors%-energizer") then
         cell = peripheral.wrap(name)
     end
 end
 
--- Kontrola, či sme všetko našli
+-- Kontrola pripojenia
 if not monitor then error("Monitor not found") end
-if not cell then error("Energized Cell not found") end
+if not cell then error("BigReactors Energizer not found") end
 
--- Nastavenie
+-- Nastavenie monitora
 monitor.setTextScale(1)
 local w, h = monitor.getSize()
 
@@ -37,9 +37,9 @@ local function drawBar(percent)
     monitor.write("[")
     for i = 1, barWidth do
         if i <= fill then
-            monitor.blit(" ", "0", "a")  -- zelené pozadie
+            monitor.blit(" ", "0", "a")  -- zelená
         else
-            monitor.blit(" ", "0", "f")  -- sivé pozadie
+            monitor.blit(" ", "0", "f")  -- sivá
         end
     end
     monitor.write("]")
@@ -48,7 +48,7 @@ end
 local function drawScreen()
     monitor.clear()
     monitor.setCursorPos(2, 1)
-    monitor.write("Energized Cell Monitor")
+    monitor.write("BigReactors Energizer")
 
     local energy = cell.getEnergyStored()
     local maxEnergy = cell.getMaxEnergyStored()
@@ -71,18 +71,18 @@ local function drawScreen()
     if enabled then
         monitor.setBackgroundColor(colors.red)
         monitor.setTextColor(colors.white)
-        monitor.write("[ Disable Cell ]")
+        monitor.write("[ Disable Energizer ]")
     else
         monitor.setBackgroundColor(colors.lime)
         monitor.setTextColor(colors.black)
-        monitor.write("[ Enable Cell ]")
+        monitor.write("[ Enable Energizer  ]")
     end
     monitor.setBackgroundColor(colors.black)
     monitor.setTextColor(colors.white)
 end
 
 local function isInButton(x, y)
-    return y == 9 and x >= 2 and x <= 18
+    return y == 9 and x >= 2 and x <= 23
 end
 
 -- Hlavný cyklus
