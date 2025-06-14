@@ -1,0 +1,101 @@
+-- Nastavenie periférií
+local monitor = peripheral.wrap("top") -- uprav podľa potreby
+local cell = peripheral.find("draconic_rf_storage") or peripheral.find("energized_cell") or peripheral.wrap("back")
+
+if not monitor or not cell then
+    error("Skontroluj pripojenie monitora a energized cell!")
+end
+
+monitor.setTextScale(1)
+monitor.setBackgroundColor(colors.black)
+monitor.clear()
+
+-- Tlačidlo na prepínanie stavu
+local button = {x=2, y=10, w=24, h=3}
+
+-- Pomocné funkcie
+local function drawProgressBar(x, y, width, percent)
+    local filled = math.floor(width * percent)
+    monitor.setCursorPos(x, y)
+    monitor.setBackgroundColor(colors.green)
+    monitor.write(string.rep(" ", filled))
+    monitor.setBackgroundColor(colors.gray)
+    monitor.write(string.rep(" ", width - filled))
+end
+
+local function drawToggleButton(active)
+    local label = active and "Vypnúť úložisko" or "Zapnúť úložisko"
+    local color = active and colors.red or colors.green
+
+    monitor.setBackgroundColor(color)
+    for y = button.y, button.y + button.h - 1 do
+        monitor.setCursorPos(button.x, y)
+        monitor.write(string.rep(" ", button.w))
+    end
+
+    monitor.setCursorPos(button.x + math.floor((button.w - #label) / 2), button.y + 1)
+    monitor.setTextColor(colors.white)
+    monitor.write(label)
+end
+
+local function drawUI()
+    monitor.clear()
+    monitor.setCursorPos(2, 2)
+    monitor.setTextColor(colors.lime)
+    monitor.write("Energized Cell Monitor")
+
+    local energy = cell.getEnergyStored() or 0
+    local max = cell.getMaxEnergyStored() or 1
+    local input = cell.getEnergyReceivedLastTick and cell.getEnergyReceivedLastTick() or 0
+    local output = cell.getEnergyExtractedLastTick and cell.getEnergyExtractedLastTick() or 0
+    local active = cell.getActive and cell.getActive()
+
+    local percent = math.min(energy / max, 1)
+
+    monitor.setCursorPos(2, 4)
+    monitor.setTextColor(colors.white)
+    monitor.write(string.format("Energie: %s RF / %s RF", energy, max))
+
+    monitor.setCursorPos(2, 5)
+    monitor.write("Stav: " .. (active and "Aktívne" or "Neaktívne"))
+
+    monitor.setCursorPos(2, 6)
+    monitor.write("Input: " .. input .. " RF/t")
+
+    monitor.setCursorPos(2, 7)
+    monitor.write("Output: " .. output .. " RF/t")
+
+    monitor.setCursorPos(2, 9)
+    drawProgressBar(2, 9, 26, percent)
+
+    drawToggleButton(active)
+end
+
+local function withinButton(x, y)
+    return x >= button.x and x < button.x + button.w and y >= button.y and y < button.y + button.h
+end
+
+-- Hlavná slučka
+parallel.waitForAny(
+    function()
+        while true do
+            drawUI()
+            sleep(1)
+        end
+    end,
+
+    function()
+        while true do
+            local event, side, x, y = os.pullEvent("monitor_touch")
+            if withinButton(x, y) then
+                if cell.setActive then
+                    local current = cell.getActive()
+                    cell.setActive(not current)
+                    monitor.setCursorPos(2, 14)
+                    monitor.setTextColor(colors.yellow)
+                    monitor.write(current and "Úložisko deaktivované. " or "Úložisko aktivované.   ")
+                end
+            end
+        end
+    end
+)
