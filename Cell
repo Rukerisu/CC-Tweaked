@@ -33,7 +33,7 @@ end
 
 -- Hlavný cyklus
 while true do
-    local energy = getEnergy()
+    local energy = cell.getEnergyStored()
     local maxEnergy = cell.getEnergyCapacity()
 
     monitor.clear()
