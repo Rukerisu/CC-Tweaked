@@ -1,3 +1,4 @@
+-- Vyhľadanie monitora a BigReactors Energizer
 local monitor, cell
 
 for _, name in ipairs(peripheral.getNames()) do
@@ -9,90 +10,37 @@ for _, name in ipairs(peripheral.getNames()) do
     end
 end
 
--- Kontrola pripojenia
+-- Kontrola
 if not monitor then error("Monitor not found") end
 if not cell then error("BigReactors Energizer not found") end
 
--- Nastavenie monitora
-monitor.setTextScale(1)
+-- Nastavenie monitora pre malý displej
+monitor.setTextScale(2)  -- zmenší počet znakov ale zväčší písmo
 local w, h = monitor.getSize()
 
--- Pomocné funkcie
+-- Formátovanie čísel
 local function formatRF(value)
     if value >= 1e6 then
         return string.format("%.1fM RF", value / 1e6)
     elseif value >= 1e3 then
-        return string.format("%.1fk RF", value / 1e3)
+        return string.format("%.0fk RF", value / 1e3)
     else
         return string.format("%d RF", value)
     end
 end
 
-local function drawBar(percent)
-    local barWidth = w - 4
-    local fill = math.floor(barWidth * percent + 0.5)
-
-    monitor.setCursorPos(2, 4)
-    monitor.write("[")
-    for i = 1, barWidth do
-        if i <= fill then
-            monitor.blit(" ", "0", "a")  -- zelená
-        else
-            monitor.blit(" ", "0", "f")  -- sivá
-        end
-    end
-    monitor.write("]")
-end
-
-local function drawScreen()
-    monitor.clear()
-    monitor.setCursorPos(2, 1)
-    monitor.write("BigReactors Energizer")
-
-    local energy = cell.getEnergyStored()
-    local maxEnergy = cell.getMaxEnergyStored()
-    local inputRate = cell.getEnergyReceivedLastTick and cell.getEnergyReceivedLastTick() or 0
-    local outputRate = cell.getEnergyExtractedLastTick and cell.getEnergyExtractedLastTick() or 0
-    local enabled = cell.getActive and cell.getActive() or false
-
-    monitor.setCursorPos(2, 3)
-    monitor.write(string.format("Stored: %s / %s", formatRF(energy), formatRF(maxEnergy)))
-
-    drawBar(energy / maxEnergy)
-
-    monitor.setCursorPos(2, 6)
-    monitor.write("Input : " .. formatRF(inputRate))
-
-    monitor.setCursorPos(2, 7)
-    monitor.write("Output: " .. formatRF(outputRate))
-
-    monitor.setCursorPos(2, 9)
-    if enabled then
-        monitor.setBackgroundColor(colors.red)
-        monitor.setTextColor(colors.white)
-        monitor.write("[ Disable Energizer ]")
-    else
-        monitor.setBackgroundColor(colors.lime)
-        monitor.setTextColor(colors.black)
-        monitor.write("[ Enable Energizer  ]")
-    end
-    monitor.setBackgroundColor(colors.black)
-    monitor.setTextColor(colors.white)
-end
-
-local function isInButton(x, y)
-    return y == 9 and x >= 2 and x <= 23
-end
-
 -- Hlavný cyklus
 while true do
-    drawScreen()
-    local event, side, x, y = os.pullEvent()
-    if event == "monitor_touch" then
-        if isInButton(x, y) then
-            local current = cell.getActive()
-            cell.setActive(not current)
-        end
-    end
+    local energy = cell.getEnergyStored()
+    local maxEnergy = cell.getMaxEnergyStored()
+
+    monitor.clear()
+    monitor.setCursorPos(1, math.floor(h / 2))
+
+    local line = formatRF(energy) .. " / " .. formatRF(maxEnergy)
+    local startX = math.floor((w - #line) / 2) + 1
+    monitor.setCursorPos(startX, math.floor(h / 2))
+    monitor.write(line)
+
     sleep(1)
 end
