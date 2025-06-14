@@ -1,104 +1,100 @@
--- Setup peripherals
-local monitor = peripheral.find("monitor")
-local cell = peripheral.find("energized_cell") or peripheral.find("draconic_rf_storage") or peripheral.wrap("back")
+-- Nájde modem, monitor a energized cell cez wired modem
+local modem = peripheral.find("modem", function(_, m) return m.isPresentRemote() end)
+local sides = peripheral.getNames()
 
-if not monitor or not cell then
-    error("Check monitor and energy cell connections!")
-end
+local monitor, cell
 
-monitor.setTextScale(1)
-monitor.setBackgroundColor(colors.black)
-monitor.clear()
-
--- Toggle button configuration
-local button = {x=2, y=10, w=24, h=3}
-
--- Helper: Draw progress bar
-local function drawProgressBar(x, y, width, percent)
-    local filled = math.floor(width * percent)
-    monitor.setCursorPos(x, y)
-    monitor.setBackgroundColor(colors.green)
-    monitor.write(string.rep(" ", filled))
-    monitor.setBackgroundColor(colors.gray)
-    monitor.write(string.rep(" ", width - filled))
-end
-
--- Helper: Draw toggle button
-local function drawToggleButton(active)
-    local label = active and "Disable Storage" or "Enable Storage"
-    local color = active and colors.red or colors.green
-
-    monitor.setBackgroundColor(color)
-    for y = button.y, button.y + button.h - 1 do
-        monitor.setCursorPos(button.x, y)
-        monitor.write(string.rep(" ", button.w))
+for _, name in ipairs(sides) do
+    if peripheral.getType(name) == "monitor" then
+        monitor = peripheral.wrap(name)
+    elseif peripheral.getType(name):find("energycell") then
+        cell = peripheral.wrap(name)
     end
-
-    monitor.setCursorPos(button.x + math.floor((button.w - #label) / 2), button.y + 1)
-    monitor.setTextColor(colors.white)
-    monitor.write(label)
 end
 
--- UI drawing
-local function drawUI()
-    monitor.clear()
-    monitor.setCursorPos(2, 2)
-    monitor.setTextColor(colors.lime)
-    monitor.write("Energized Cell Monitor")
+if not monitor then error("Monitor not found") end
+if not cell then error("Energized Cell not found") end
 
-    local energy = cell.getEnergyStored() or 0
-    local max = cell.getMaxEnergyStored() or 1
-    local input = cell.getEnergyReceivedLastTick and cell.getEnergyReceivedLastTick() or 0
-    local output = cell.getEnergyExtractedLastTick and cell.getEnergyExtractedLastTick() or 0
-    local active = cell.getActive and cell.getActive()
+-- Konfigurácia
+monitor.setTextScale(1)
+local w, h = monitor.getSize()
 
-    local percent = math.min(energy / max, 1)
+-- Pomocné funkcie
+local function formatRF(value)
+    if value >= 1e6 then
+        return string.format("%.1fM RF", value / 1e6)
+    elseif value >= 1e3 then
+        return string.format("%.1fk RF", value / 1e3)
+    else
+        return string.format("%d RF", value)
+    end
+end
+
+local function drawBar(percent)
+    local barWidth = w - 4
+    local fill = math.floor(barWidth * percent + 0.5)
 
     monitor.setCursorPos(2, 4)
-    monitor.setTextColor(colors.white)
-    monitor.write(string.format("Energy: %s RF / %s RF", energy, max))
-
-    monitor.setCursorPos(2, 5)
-    monitor.write("Status: " .. (active and "Active" or "Inactive"))
-
-    monitor.setCursorPos(2, 6)
-    monitor.write("Input: " .. input .. " RF/t")
-
-    monitor.setCursorPos(2, 7)
-    monitor.write("Output: " .. output .. " RF/t")
-
-    monitor.setCursorPos(2, 9)
-    drawProgressBar(2, 9, 26, percent)
-
-    drawToggleButton(active)
-end
-
--- Check if monitor touch was inside button area
-local function withinButton(x, y)
-    return x >= button.x and x < button.x + button.w and y >= button.y and y < button.y + button.h
-end
-
--- Main loop
-parallel.waitForAny(
-    function()
-        while true do
-            drawUI()
-            sleep(1)
-        end
-    end,
-
-    function()
-        while true do
-            local event, side, x, y = os.pullEvent("monitor_touch")
-            if withinButton(x, y) then
-                if cell.setActive then
-                    local current = cell.getActive()
-                    cell.setActive(not current)
-                    monitor.setCursorPos(2, 14)
-                    monitor.setTextColor(colors.yellow)
-                    monitor.write(current and "Storage disabled.     " or "Storage enabled.      ")
-                end
-            end
+    monitor.write("[")
+    for i = 1, barWidth do
+        if i <= fill then
+            monitor.blit(" ", "0", "a")  -- zelené pozadie
+        else
+            monitor.blit(" ", "0", "f")  -- sivé pozadie
         end
     end
-)
+    monitor.write("]")
+end
+
+local function drawScreen()
+    monitor.clear()
+    monitor.setCursorPos(2, 1)
+    monitor.write("Energized Cell Monitor")
+
+    local energy = cell.getEnergyStored()
+    local maxEnergy = cell.getMaxEnergyStored()
+    local inputRate = cell.getEnergyReceivedLastTick and cell.getEnergyReceivedLastTick() or 0
+    local outputRate = cell.getEnergyExtractedLastTick and cell.getEnergyExtractedLastTick() or 0
+    local enabled = cell.getActive and cell.getActive() or false
+
+    monitor.setCursorPos(2, 3)
+    monitor.write(string.format("Stored: %s / %s", formatRF(energy), formatRF(maxEnergy)))
+
+    drawBar(energy / maxEnergy)
+
+    monitor.setCursorPos(2, 6)
+    monitor.write("Input : " .. formatRF(inputRate))
+
+    monitor.setCursorPos(2, 7)
+    monitor.write("Output: " .. formatRF(outputRate))
+
+    monitor.setCursorPos(2, 9)
+    if enabled then
+        monitor.setBackgroundColor(colors.red)
+        monitor.setTextColor(colors.white)
+        monitor.write("[ Disable Cell ]")
+    else
+        monitor.setBackgroundColor(colors.lime)
+        monitor.setTextColor(colors.black)
+        monitor.write("[ Enable Cell ]")
+    end
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+end
+
+local function isInButton(x, y)
+    return y == 9 and x >= 2 and x <= 18
+end
+
+-- Hlavný cyklus
+while true do
+    drawScreen()
+    local event, side, x, y = os.pullEvent()
+    if event == "monitor_touch" then
+        if isInButton(x, y) then
+            local current = cell.getActive()
+            cell.setActive(not current)
+        end
+    end
+    sleep(1)
+end
