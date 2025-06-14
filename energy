@@ -20,7 +20,11 @@ local w, h = monitor.getSize()
 
 -- Formátovanie čísel
 local function formatRF(value)
-    if value >= 1e9 then
+    if value >= 1e15 then
+        return string.format("%.4fQ RF", value / 1e15)
+    elseif value >= 1e12 then
+        return string.format("%.3fT RF", value / 1e12)
+    elseif value >= 1e9 then
         return string.format("%.2fB RF", value / 1e9)
     elseif value >= 1e6 then
         return string.format("%.1fM RF", value / 1e6)
