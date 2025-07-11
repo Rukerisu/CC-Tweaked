@@ -1,6 +1,6 @@
 -- bigreactors_monitor_en_no_comments
 
-local peripheralName = "bigreactors_energizer"
+local peripheralName = "BigReactors-Energizer"
 local energizer = peripheral.find(peripheralName)
 local monitor = peripheral.find("monitor")
 
