@@ -1,0 +1,148 @@
+-- energizer_monitor_en
+-- Extreme Reactors Energizer monitoring program for 4x3 monitors
+
+local peripheralName = "extremereactors_energizer"
+local energizer = peripheral.find(peripheralName)
+local monitor = peripheral.find("monitor") -- Finds any connected monitor (if multiple are linked, they form one display)
+
+local t = monitor or term -- Uses the monitor if it exists, otherwise the computer's terminal
+
+-- Colors (ComputerCraft)
+local COLOR_BLACK = colors.black
+local COLOR_WHITE = colors.white
+local COLOR_GREEN = colors.green
+local COLOR_RED = colors.red
+local COLOR_BLUE = colors.blue
+local COLOR_LIGHT_GRAY = colors.lightGray
+local COLOR_YELLOW = colors.yellow
+local COLOR_ORANGE = colors.orange
+local COLOR_PURPLE = colors.purple
+local COLOR_CYAN = colors.cyan
+
+-- Function to center text
+local function centerText(text, width, y, bgColor, textColor, scale)
+    t.setTextScale(scale or 1) -- Set text size, default is 1
+    local scaledWidth = math.floor(width / (scale or 1)) -- Actual width for alignment with scaled text
+    local x = math.floor((scaledWidth - #text) / 2) + 1
+    t.setBackgroundColor(bgColor)
+    t.setTextColor(textColor)
+    t.setCursorPos(x, y)
+    t.write(text)
+end
+
+-- Function to print styled text
+local function printStyled(text, x, y, bgColor, textColor, scale)
+    t.setTextScale(scale or 1)
+    t.setBackgroundColor(bgColor)
+    t.setTextColor(textColor)
+    t.setCursorPos(x, y)
+    t.write(text)
+end
+
+-- Check if Energizer was found
+if not energizer then
+    t.setBackgroundColor(COLOR_BLACK)
+    t.setTextColor(COLOR_RED)
+    t.clear()
+    t.setCursorPos(1, 1)
+    t.write("Error: Energizer not found.")
+    t.write("Make sure the Computer Port is connected.")
+    t.write("If using a different name, change 'peripheralName'.")
+    return
+end
+
+-- Initialization for I/O calculation
+local lastStoredEnergy = energizer.getEnergyStored()
+local lastUpdateTime = os.time()
+
+print("Energizer monitoring started on MEGA display (4x3)...")
+
+while true do
+    -- Get current data
+    local currentStoredEnergy = energizer.getEnergyStored()
+    local capacity = energizer.getCapacity()
+    local currentTime = os.time()
+
+    -- Get monitor dimensions
+    local monitorWidth, monitorHeight = t.getSize()
+
+    -- Calculate I/O (per second)
+    local energyChange = currentStoredEnergy - lastStoredEnergy
+    local timeDelta = currentTime - lastUpdateTime
+
+    local energyInput = 0
+    local energyOutput = 0
+
+    if timeDelta > 0 then
+        if energyChange > 0 then
+            energyInput = energyChange / timeDelta
+        elseif energyChange < 0 then
+            energyOutput = math.abs(energyChange) / timeDelta
+        end
+    end
+
+    -- Calculate percentage
+    local percentage = 0
+    if capacity > 0 then
+        percentage = (currentStoredEnergy / capacity) * 100
+    end
+
+    -- Clear the entire screen
+    t.setBackgroundColor(COLOR_BLACK)
+    t.setTextColor(COLOR_WHITE)
+    t.clear()
+
+    -- --- HEADER ---
+    local headerScale = 2 -- Larger text for header
+    centerText("=== Extreme Reactors Energizer Status ===", monitorWidth, 2, COLOR_PURPLE, COLOR_YELLOW, headerScale)
+
+    -- --- Stored Energy ---
+    local sectionScale = 1.5 -- Text size for section labels
+    local valueScale = 2.5 -- Text size for main values
+
+    printStyled("Stored Energy:", 5, 8, COLOR_BLACK, COLOR_WHITE, sectionScale)
+    printStyled(string.format("%,.0f RF", currentStoredEnergy), 5, 11, COLOR_BLACK, COLOR_LIGHT_GRAY, valueScale)
+
+    -- --- Capacity ---
+    printStyled("Capacity:", 5, 18, COLOR_BLACK, COLOR_WHITE, sectionScale)
+    printStyled(string.format("%,.0f RF", capacity), 5, 21, COLOR_BLACK, COLOR_LIGHT_GRAY, valueScale)
+
+    -- --- Fill Level ---
+    local percentColor = COLOR_RED
+    if percentage >= 90 then
+        percentColor = COLOR_GREEN
+    elseif percentage >= 50 then
+        percentColor = COLOR_YELLOW
+    end
+    printStyled("Fill Level:", 5, 28, COLOR_BLACK, COLOR_WHITE, sectionScale)
+    printStyled(string.format("%.2f%%", percentage), 5, 31, COLOR_BLACK, percentColor, valueScale)
+
+    -- --- Energy Input ---
+    local ioScale = 2 -- Text size for I/O values
+    local ioXPos = monitorWidth / 2 + 5 -- Position for right side
+
+    printStyled("Energy Input:", ioXPos, 8, COLOR_BLACK, COLOR_WHITE, sectionScale)
+    printStyled(string.format("+%,.0f RF/s", energyInput), ioXPos, 11, COLOR_BLACK, COLOR_GREEN, ioScale)
+
+    -- --- Energy Output ---
+    printStyled("Energy Output:", ioXPos, 18, COLOR_BLACK, COLOR_WHITE, sectionScale)
+    printStyled(string.format("-%,.0f RF/s", energyOutput), ioXPos, 21, COLOR_BLACK, COLOR_RED, ioScale)
+
+    -- --- Last Update / Instructions ---
+    t.setTextScale(1) -- Back to normal size
+    t.setBackgroundColor(COLOR_BLACK)
+    t.setTextColor(COLOR_CYAN)
+    t.setCursorPos(5, monitorHeight - 3) -- Three lines from the bottom
+    t.write(string.format("Last Update: %s", os.date("%H:%M:%S")))
+
+    t.setTextColor(COLOR_LIGHT_GRAY)
+    t.setCursorPos(5, monitorHeight - 1) -- Last line
+    t.write("Press CTRL+T to terminate.")
+
+
+    -- Update for next iteration
+    lastStoredEnergy = currentStoredEnergy
+    lastUpdateTime = currentTime
+
+    sleep(1) -- Wait 1 second before updating
+end
