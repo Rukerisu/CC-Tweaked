@@ -1,6 +1,6 @@
--- bigreactors_monitor_en_no_comments
+-- bigreactors_monitor_en_no_comments_final
 
-local peripheralName = "BigReactors-Energizer"
+local peripheralName = "BigReactors-Energizer" -- ZMĚNĚNO NA ZÁKLADĚ TVÉHO VÝSTUPU Z "peripherals"!
 local energizer = peripheral.find(peripheralName)
 local monitor = peripheral.find("monitor")
 
@@ -42,7 +42,7 @@ if not energizer then
     t.setCursorPos(1, 1)
     t.write("Error: Energizer not found.")
     t.write("Make sure the Computer Port is connected.")
-    t.write("If using a different name, change 'peripheralName'.")
+    t.write("The expected peripheral name is '" .. peripheralName .. "'.") -- Přidána informace o očekávaném názvu
     return
 end
 
